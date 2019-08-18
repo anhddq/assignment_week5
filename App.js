@@ -6,6 +6,7 @@ import FeedItem from './components/FeedItem';
 
 export default class App extends Component {
   state = {
+    isRefreshing: false,
     isLoading : false,
     listArticles: [],
     totalResults: 0,
@@ -22,11 +23,11 @@ export default class App extends Component {
   callApi= async page =>{
     const {listArticles} =this.state;
     const response = await fetch(`https://newsapi.org/v2/top-headlines?country=us&apiKey=6eec2f7fe6cd4c40a3fef8f33f5778fe&page=${page}`);
-    await setTimeout(() => {}, 2000);
     const jsonResponse = await response.json();
     this.setState({
       page: page,
       isLoading: false,
+      isRefreshing: false,
       listArticles: listArticles.concat( jsonResponse.articles),
       totalResults: response.totalResults,
     });
@@ -40,16 +41,28 @@ export default class App extends Component {
     
   };
 
+  onRefresh = async () => {
+    const newPage =1;
+    await this.setState({ isRefreshing:true, listArticles : [], page : newPage });
+    setTimeout(() => {
+      this.callApi(newPage);
+    })
+  };
+
   renderItem = ({item}) => {
     return <FeedItem item={item} />
   };
 
   renderFooter = () => {
-    return <ActivityIndicator color='blue' animating={true} />;
+    const {isRefreshing} = this.state;
+    if(!isRefreshing)
+    {
+      return <ActivityIndicator color='blue' animating={true} />;
+    }
   };
 
   render() {
-    const {isLoading, listArticles} = this.state;
+    const {isRefreshing, isLoading, listArticles} = this.state;
     if(isLoading) {
       return (
         <View style={styles.container}>
@@ -66,6 +79,8 @@ export default class App extends Component {
           onEndReached= {this.onEndReached}
           onEndReachedThreshold={0.1}
           ListFooterComponent= {this.renderFooter()}
+          onRefresh={this.onRefresh}
+          refreshing={isRefreshing}
         />
       </View>
     );
